@@ -134,51 +134,61 @@ angular.module("com.2fdevs.videogular.plugins.controls")
 
                     scope.onScrubBarMouseDown = function onScrubBarMouseDown(event) {
                         event = VG_UTILS.fixEventOffset(event);
+                        event.preventDefault();
+                        var offsetX = event.clientX + touchStartX - elem[0].offsetLeft;
 
                         isSeeking = true;
                         if (isPlaying) isPlayingWhenSeeking = true;
                         API.pause();
 
-                        API.seekTime(event.offsetX * API.mediaElement[0].duration / slider.scrollWidth);
+                        API.seekTime(offsetX * API.mediaElement[0].duration / slider.scrollWidth);
 
                         scope.$apply();
                     };
 
                     scope.onScrubBarMouseUp = function onScrubBarMouseUp(event) {
                         //event = VG_UTILS.fixEventOffset(event);
-
-                        if (isPlayingWhenSeeking) {
-                            isPlayingWhenSeeking = false;
-                            API.play();
+                        if (isSeeking) {
+                            if (isPlayingWhenSeeking) {
+                                isPlayingWhenSeeking = false;
+                                API.play();
+                            }
+                            isSeeking = false;
+                            //API.seekTime(event.offsetX * API.mediaElement[0].duration / slider.scrollWidth);
+    
+                            scope.$apply();
                         }
-                        isSeeking = false;
-                        //API.seekTime(event.offsetX * API.mediaElement[0].duration / slider.scrollWidth);
-
-                        scope.$apply();
                     };
 
                     scope.onScrubBarMouseMove = function onScrubBarMouseMove(event) {
-                        if (scope.vgThumbnails && scope.vgThumbnails.length) {
-                            var second = Math.round(event.offsetX * API.mediaElement[0].duration / slider.scrollWidth);
-                            var percentage = Math.round(second * 100 / (API.totalTime / 1000));
-
-                            scope.updateThumbnails(percentage);
-                        }
-
                         if (isSeeking) {
+                            if (scope.vgThumbnails && scope.vgThumbnails.length) {
+                                var second = Math.round(event.offsetX * API.mediaElement[0].duration / slider.scrollWidth);
+                                var percentage = Math.round(second * 100 / (API.totalTime / 1000));
+    
+                                scope.updateThumbnails(percentage);
+                            }
+                                
                             event = VG_UTILS.fixEventOffset(event);
-                            API.seekTime(event.offsetX * API.mediaElement[0].duration / slider.scrollWidth);
+                            var offsetX = event.clientX + touchStartX - elem[0].offsetLeft;
+
+                            if (offsetX >= elem[0].scrollWidth)
+                                offsetX = elem[0].scrollWidth - 1;
+                            else if (offsetX <= touchStartX)
+                                offsetX = touchStartX;
+                                
+                            API.seekTime(offsetX * API.mediaElement[0].duration / slider.scrollWidth);
+    
+                            scope.$apply();
                         }
-
-                        scope.$apply();
                     };
 
-                    scope.onScrubBarMouseLeave = function onScrubBarMouseLeave(event) {
-                        isSeeking = false;
-                        scope.thumbnails = false;
+                    // scope.onScrubBarMouseLeave = function onScrubBarMouseLeave(event) {
+                    //     isSeeking = false;
+                    //     scope.thumbnails = false;
 
-                        scope.$apply();
-                    };
+                    //     scope.$apply();
+                    // };
 
                     scope.onScrubBarKeyDown = function onScrubBarKeyDown(event) {
                         var currentPercent = (API.currentTime / API.totalTime) * 100;
@@ -263,9 +273,13 @@ angular.module("com.2fdevs.videogular.plugins.controls")
                     }
                     else {
                         elem.bind("mousedown", scope.onScrubBarMouseDown);
-                        elem.bind("mouseup", scope.onScrubBarMouseUp);
-                        elem.bind("mousemove", scope.onScrubBarMouseMove);
-                        elem.bind("mouseleave", scope.onScrubBarMouseLeave);
+                        // elem.bind("mouseup", scope.onScrubBarMouseUp);
+                        // elem.bind("mousemove", scope.onScrubBarMouseMove);
+                        // elem.bind("mouseleave", scope.onScrubBarMouseLeave);
+                        
+                        document.documentElement.addEventListener('mouseup', onScrubBarMouseUp);
+                        document.documentElement.addEventListener("mousemove", onScrubBarMouseMove);
+
                     }
 
                     scope.$on('destroy', scope.onDestroy.bind(scope));
